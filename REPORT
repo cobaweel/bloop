@@ -1,0 +1,296 @@
+                        -*- text -*-
+
+----------------------------------------------------------------------
+               Report on the BlooP/FlooP compiler
+
+                         Jaap Weel
+                        1 June 2005
+
+
+
+
+1. Introduction
+
+I have written a compiler for the BlooP and FlooP languages described
+by Douglas Hofstadter in his book "Gödel, Escher, Bach; an Eternal
+Golden Braid." The compiler compiles the BlooP and FlooP languages
+into Scheme or C. From hereon, when I refer to BlooP, I also include
+FlooP, which is different in only one feature. I have been supervised
+during this project by Mike Vanier at Caltech.
+
+
+2. The parsers and printers
+
+The BlooP parser uses monadic parser combinators. This is a relatively
+new approach to parsing that is becoming very popular within the
+functional programming community and has been used for some
+large-scale projects such as Pugs (the Perl 6 implementation that
+actually works.)
+
+Because parser combinators are just library functions, there is no
+magical preprocessor involved in writing the parser. Nonetheless, the
+technique allows parsers to be written in a very declarative style,
+abstracting the mechanics of parsing into the library.
+
+
+2.1 Parser combinators
+
+Like many well-designed libraries, Daan Leijen's Parsec parser
+combinator library is structured as a domain-specific programming
+language exhibiting the three elements of a programming language
+according to the Wizard Book: primitives, means of combination, and
+means of abstraction.
+
+The primitives in the parser combinator language are parsers. A parser
+is a function that takes a string to parse, and returns a list of
+*every* *possible* pair of a parsed tree and a rest string. This means
+that they allow for ambigous grammars, as well as for failure.
+
+The means of combination are so-called parser combinators, as well as
+the standard monadic bind and return operators. These can be used to
+compose small parsers into bigger parsers. Because the parsers that
+they return are just like the ones they accept, parser combinators
+allow for arbitrary composition of parsers. The standard monadic bind
+operator is used for sequencing parsers and gathering their results.
+
+The parser combinator language is an example of a language where the
+set of primitives is closed under the set of means of combination
+(which is what makes them combinators). This is a very powerful
+property because it creates arbitrary flexibility in constructing
+parsers.
+
+The means of abstraction in the parser combinator language are
+provided by Haskell itself, which allows for naming parsers and
+combinators, as well generally manipulating them as first-class
+Haskell objects.
+
+In the tree, there is a parser for BlooP, as well as a working parser
+for the more realistic Blaise language, which is closely modeled on
+the Pascal dialect Oberon. The Blaise parser has been optimized to
+give meaningful error messages, which is also especially easy to do
+using parser combinators.
+
+Not all is good about parser combinators. They are pretty much
+strictly slower than lexx/yacc style parsers. They do, however, allow
+for much speedier development, much more intelligible code, better
+integration with the host language, more type checking, more
+flexibility, and better error handling. I like them.
+
+
+2.2 Pretty printers
+
+Pretty printer combinators are another combinator language. In the
+BlooP compiler, I have extensively used the Daan Leijen's PPrint
+library which is based on Phil Wadler's "prettier printer."
+Pretty-printing combinators are a very useful tool for writing
+pretty-printers. My C pretty-printer using PPrint is both shorter and
+much more declarative (and thus easier to understand) than, for
+example, the C pretty-printer in FrontC, which was written in
+OCaml. The pretty-printers in the BlooP source tree produce, with
+minimal effort, nicely formatted BlooP, Scheme, C, and Blaise
+code.
+
+It turns out that a pretty printer, if not absolutely essential, can
+be a very useful debugging tool in debugging a programming language
+processing tool such as a compiler. The small effort spent on one
+(because of the combinators) is has been well worth the ease of
+debugging, especially for more complicated languages such as Blaise.
+
+
+3. The compiler to Scheme
+
+My first cut at a BlooP compiler targeted Scheme. This was made easy
+by the fact that a dummy AST for Scheme is easily constructed:
+
+  data S = Atom String | List [S] 
+  data Scheme = Scheme [S]
+
+That way, I could get started producing Scheme code right away,
+without having to worry about defining a complicated AST type, or
+(even worse) simply mixing the code for printing and generating code.
+
+The printer for the simplified Scheme AST is not very sophisticated,
+but could potentially be extended, as has been shown throughout a long
+tradition of pretty-printers for Lisp-like languages.
+
+The strategy I used for compiling BlooP's unusual control structures
+has been to translate them into scheme-code using tail recursion and
+continuations. The full power of first-class continuations in Scheme
+is not necessary to capture the essence of these control structures,
+but it makes for a nice, simple semantic model that is pretty close to
+something you could use for a formal denotational description.
+
+The curious bit about the compiler is that it does not actually
+contain the code to compile control structures at all. Instead, that
+is implemented by means of Clinger/Rees lexically-scoped hygienic
+macros, which is -- I believe -- the technical name for the macro
+system described in the fifth Scheme report. These macros are
+contained in a file called prelude.scm, which the compiler driver
+includes in every output Scheme file.
+
+The direct consequence of this use of macros is the elimination of
+static type checking along with the addition of hygiene. Hygiene is
+probably more important in this context, since (1) we have no symbol
+table, so hygiene would be hard to do if we wrote this in Haskell, and
+(2) given the nature of the syntactic transformations, which operate
+on a very simple datatype, it is not clear type-checking helps so
+much. They would all just be functions statement->statement.
+
+
+4. Processing C
+
+C is a tricky language to program in, be it manually or
+automatically. It is not clear that the AST that I use for C covers
+all valid C expressions, and the pretty-printer definitely has gaps. I
+have stayed far away from implementing a parser. Nonetheless, the C
+back-end has proved perfectly adequate for the purposes of this
+project, and the emitted C code is exceptionally readable for
+generated code.
+
+
+5. The compiler to C
+
+The compiler to C turned out to be, after the C AST and pretty-printer
+were implemented, relatively easy. 
+
+Basically, this compiler just transliterates bloop statements and
+expressions into directly equivalent C statements and
+expressions. ABORT and QUIT are implented with labels and gotos; cells
+are just variables. BlooP identifiers keep their original
+capitalization, freeing up a lot of namespace for generated
+identifiers. The advantage of this is that the C that is generated is
+relatively similar to C one might write by hand.
+
+There is a dead code elimination phase after the initial translation
+phase. It serves to make the produced C code more readable by cutting
+out superfluous levels of block structure and unused labels.
+
+An example of C code that has been produced by the BlooP to C compiler
+follows:
+
+int MINUS(int M, int N)
+{
+    int output = 0;
+    if (M < N) 
+        goto quit0;
+    {
+        int ctr1;
+        for (ctr1 = (M + 1); ctr1 > 0; ctr1--) {
+            if ((output + N) == M) 
+                goto abort1;
+            output = (output + 1);
+        }
+    }
+    abort1:
+    quit0:
+    return output;
+}
+
+The original reads:
+
+DEFINE PROCEDURE "MINUS" [M,N]:
+BLOCK 0: BEGIN
+        IF M<N, THEN:
+        QUIT BLOCK 0;
+        LOOP AT MOST M + 1 TIMES:
+        BLOCK 1: BEGIN
+                IF OUTPUT + N = M, THEN:
+                ABORT LOOP 1;
+                OUTPUT <= OUTPUT + 1;
+        BLOCK 1: END;
+BLOCK 0: END;
+
+Judging to what extent the goal of generating a legible, idiomatic
+translation has been reached is left as an exercise to the reader.
+
+
+6. Blaise
+
+Blaise is a Pascal dialect similar to Oberon. The distinction between
+Blaise and Oberon exists mostly to allow for experimentation on the
+part of the implementor; the languages are extremely similar.
+
+So far, there exists only a parser and a pretty printer for
+Blaise. This is still somewhat interesting from the perspective that
+Blaise is a much more complicated (and realistic) language than
+BlooP. The size of language opens opportunities for further
+abstraction around the standard parser combinators in ways that are
+more specialized to constructs common in Pascal-like languages. An
+interesting extension would be to investigate the potential for
+heavier reuse of parser components in parsing similar languages.
+
+
+7. Literate programming
+
+This project has also been an opportunity for me to gain experience
+with literate programming. Some files are still plain Haskell, but
+others contains varying amounts of TeX embedded in them. 
+
+
+8. Generics
+
+The compiler now uses generics! There was a large amount of redundancy
+in the original code analyzing and optimization phases. To do
+something to, say, every statement in a C program, I still had to
+write code to process the various non-statement components, such as
+expressions, that may contain statements. This has been remedied using
+GHC's Generic facilities, known as the "scrap your boilerplate"
+approach of L"ammel and Peyton Jones. They allow for the very concise
+code in AnalyzeC.hs and AnalyzeBloop.hs.
+
+
+
+9. References:
+
+This list of references is not the most careful one I have ever put
+together and should not be construed as an attempt to comply with any
+sort of set format.
+
+
+About BlooP, FlooP, and GlooP:
+
+    Goedel, Escher, Bach: an eternal golden braid DR Hofstadter - 1979
+    - New York: Basic Books
+
+About pretty printers:
+
+    A Pretty Printer Library in Haskell, Version 3.0, 1997 SP Jones -
+    URL http://www. dcs. gla. ac. uk/simonpj/pretty. html
+
+    A prettier printer P Wadler - Unpublished manuscript, 1998 -
+    itee.uq.edu.au; A prettier printer Philip Wadler Bell Labs, Lucent
+    Technologies wadler@research.bell-labs.com April 1997, revised
+    March 1998
+
+    PPrint, a prettier printer
+    D LEIJEN - cs.uu.nl 
+
+About parser combinators:
+
+    Monadic parser combinators; G Hutton, E Meijer - Journal of
+    Functional Programming, 1996 - cs-www.cs.yale.edu
+
+    Parsec: Direct style monadic parser combinators for the real
+    world; D Leijen, E Meijer, WA Redmond - cs.uu.nl
+
+About Oberon:
+
+    The Programming Language; Oberon-2
+    H Moessenboeck, N Wirth - Structured Programming, 1991 
+
+About C:
+
+    The ANSI C programming language; BW Kernighan, DM Ritchie - 1988 -
+    Prentice-Hall Software Series. Prentice-Hall
+
+About Scheme hygienic macros:
+
+    Revised 5 Report on the Algorithmic Language Scheme (R5RS); R
+    Kelsey, W Clinger
+
+    Macros That Work; WD Clinger, J Rees - POPL, 1991 - pluto.mumble.net
+
+Generic programming in Haskell:
+
+    Scrap your boilerplate: a practical design pattern for generic
+    programming; R Laemmel, SLP Jones - TLDI, 2003 - portal.acm.org

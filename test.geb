@@ -1,0 +1,91 @@
+/*
+ * This is all the Bloop/Floop code from GEB.
+ */
+
+DEFINE PROCEDURE "TWO-TO-THE-THREE-TO-THE" [N]:
+BLOCK 0: BEGIN
+      CELL(0) <= 1;
+      LOOP N TIMES:
+      BLOCK 1: BEGIN
+            CELL(0) <= 3 * CELL(0);
+      BLOCK 1: END;
+      CELL(1) <= 1;
+      LOOP CELL(0) TIMES:
+      BLOCK 2: BEGIN
+            CELL(1) <= 2 * CELL(1);
+      BLOCK 2: END;
+      OUTPUT <= CELL(1);
+BLOCK 0: END;            
+
+TWO-TO-THE-THREE-TO-THE[1];
+TWO-TO-THE-THREE-TO-THE[2];
+TWO-TO-THE-THREE-TO-THE[3];
+
+DEFINE PROCEDURE "MINUS" [M,N]:
+BLOCK 0: BEGIN
+        IF M<N, THEN:
+        QUIT BLOCK 0;
+        LOOP AT MOST M + 1 TIMES:
+        BLOCK 1: BEGIN
+                IF OUTPUT + N = M, THEN:
+                ABORT LOOP 1;
+                OUTPUT <= OUTPUT + 1;
+        BLOCK 1: END;
+BLOCK 0: END;
+
+MINUS[5,1];
+MINUS[43,1];
+MINUS[43,20];
+
+DEFINE PROCEDURE "PRIME?" [N]:
+BLOCK 0: BEGIN  IF N = 0, THEN:
+        QUIT BLOCK 0;
+        CELL(0) <= 2;
+        LOOP AT MOST MINUS [N,2] TIMES:
+        BLOCK 1: BEGIN
+                IF REMAINDER[N,CELL(0)] = 0, THEN:
+                QUIT BLOCK 0;
+                CELL(0) <= CELL(0)+1;
+        BLOCK 1: END;
+        OUTPUT <= YES;
+BLOCK 0: END;
+
+PRIME?[1];
+PRIME?[2];
+PRIME?[3];
+PRIME?[5];
+PRIME?[7];
+PRIME?[101];
+PRIME?[40];
+PRIME?[20];
+PRIME?[0];
+PRIME?[30];
+PRIME?[10];
+
+DEFINE PROCEDURE "GOLDBACH?" [N]:
+BLOCK 0: BEGIN
+        CELL(0) <= 2;
+        LOOP AT MOST N TIMES:
+        BLOCK 1: BEGIN
+                IF {PRIME?[CELL(0)] AND PRIME?[ MINUS[N,CELL(0)]]}, THEN:
+                BLOCK 2: BEGIN
+                           OUTPUT <= YES;
+                           QUIT BLOCK 0;
+                BLOCK 2: END;
+                CELL(0) <= CELL(0) + 1;
+        BLOCK 1: END;
+BLOCK 0: END;
+
+GOLDBACH?[2];
+GOLDBACH?[4];
+GOLDBACH?[6];
+GOLDBACH?[8];
+GOLDBACH?[10];
+GOLDBACH?[12];
+GOLDBACH?[14];
+GOLDBACH?[16];
+GOLDBACH?[18].
+
+
+
+

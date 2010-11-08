@@ -1,0 +1,105 @@
+
+**********************************************************************
+                         BLOOP AND FLOOP
+**********************************************************************
+
+In bullet points, for the impatient:
+
+   o This is bloop, a BlooP/FlooP compiler
+
+   o BlooP and FlooP are from Goedel, Escher, Bach by Doug Hofstader
+
+   o You need GHC version 6.4
+
+   o You need scsh version 0.6.6 for the Scheme back end
+   
+   o For the experimental C back end, you probably want gcc
+
+   o You need *NIX (GNU/Linux, *BSD, OSX, Solaris _should_ all work).
+
+   o The bloop compiler compiles BlooP/FlooP to Scheme. It is by no
+     means designed to be efficient, and uses the notorious
+     scheme library procedure call-with-current-continuation liberally.
+
+How to compile:
+
+   o type:  
+      
+       make 
+        <wait a while>
+
+       su -c make install
+        <type your root password>
+     
+   o tadaaah!
+
+How to use:
+
+   o bloop takes the following arguments
+
+  -h       --help         this message
+  -v       --version      show version
+  -s       --scheme       output Scheme
+  -c       --c            output "C"
+  -i       --i            output IR
+  -o FILE  --output=FILE  output FILE
+  -f FILE                 input FILE
+
+   It needs both the -o and -f arguments, and one of -s, -c, -i
+
+  For the time being, it is very picky about the order of these
+  arguments and will give you an "internal compiler error" if you
+  offend its sensibilities. I may fix that some time, but someone
+  might have to bug me...
+
+Compile test.geb to test.c, then run GCC on that:
+
+  % bloop -c -o test.c -f test.geb && gcc -o test test.c
+
+Compile test.geb to test.scm, then run that:
+
+  % bloop -s -o test.scm -f test.geb && ./test.scm
+
+
+Enjoy!
+
+----------------------------------------------------------------------
+
+The "bloop" program is a BlooP/FlooP compiler, which takes a
+BlooP/FlooP program and turns it into a Scheme program with a shebang
+line so that it can be executed by scsh. As an added bonus, you can
+easily add code to the "prelude" to make Scheme library functions
+available in BlooP/FlooP.
+
+BlooP and FlooP are (similar) programming languages invented by
+Douglas Hofstadter for his book "Goedel, Escher, Bach -- an Eternal
+Golden Braid."
+
+----------------------------------------------------------------------
+
+All the code from GEB compiles, with the following modifications:
+
+ o Since Hofstader does not specify the syntax for a "program", only
+   for a "procedure", I assume the following convention: a program is
+   a semicolon-separated sequence of (mixed) procedures and
+   expressions, followed by a period.
+
+ o I allow the use of /* C-style comments */ and // C++ style comments
+
+ o The multiplication sign becomes *; the assignment operator <=.
+
+ o One of the programs in GEB is missing a semicolon.
+
+----------------------------------------------------------------------
+
+The BlooP/FlooP compiler was written in May 2005 by 
+
+  Jaap Weel
+  <weel at ugcs dot caltech dot edu>
+
+but would not have been possible without the Glorious Glasgow Haskell
+compiler and Daan Leijen's Parsec and PPrint libraries.
+
+If you, for whatever reason, have found a use for this utterly
+frivolous piece of software, I would very much appreciate if you could
+let me know at the above e-mail address.
