@@ -10,7 +10,7 @@
 \maketitle
 
 Originally snarfed from the FrontC code, then translated from ML using
-Emacs macros. Originally Copyright Hugues Cassé, released under
+Emacs macros. Originally Copyright Hugues Cassï¿½, released under
 GPL. I've thrown out all K$\&$R specific stuff, but kept the ANSI and GNU
 stuff. I've redone all of the declaration stuff. 
 
@@ -36,9 +36,10 @@ Suite 330, Boston, MA 02111-1307 USA
 
 \begin{code}
 module AstC where
+import Prelude hiding ((<$>))
 import PPrint
 import Data.Maybe ( fromMaybe )
-import Data.Generics
+import Data.Generics hiding (empty)
 \end{code}
 
 The symbols \verb.<>., \verb.<$>. and \verb.<+>. in PPrint are written

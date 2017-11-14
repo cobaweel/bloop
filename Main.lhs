@@ -27,7 +27,7 @@ module Main where
 import System.Console.GetOpt
 import Data.Maybe ( fromMaybe )
 import System.IO
-import System.IO.Error ( try )
+import System.IO.Error ( tryIOError )
 import System.Environment ( getArgs )
 import System.Posix ( unionFileModes, ownerExecuteMode,
                       setFileMode, fileMode, getFileStatus )
@@ -143,7 +143,7 @@ compileTo target (_:xs) = compileTo target xs
 Read library files from an obvious location:
 \begin{code}
 getInstalledFile :: String -> String -> IO String
-getInstalledFile path fn = do s <- try (readFile fn)
+getInstalledFile path fn = do s <- tryIOError (readFile fn)
                               case s of
                                Left _ -> readFile (path ++ fn)
                                Right a -> return a
