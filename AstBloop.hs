@@ -20,6 +20,7 @@ module AstBloop
   , prettyShow
   )
 where
+import Prelude hiding ((<$>))
 import PPrint
 import Data.Generics
 

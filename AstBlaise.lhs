@@ -23,6 +23,7 @@ Suite 330, Boston, MA 02111-1307 USA
 
 \begin{code}
 module AstBlaise where
+import Prelude hiding ((<$>))
 import PPrint
 \end{code}
 
